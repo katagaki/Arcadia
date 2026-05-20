@@ -10,8 +10,6 @@
 namespace arcadia {
 
 std::string FileNameForURL(const std::string& url) {
-    // Deterministic, filesystem-safe name. (std::hash is fine for collision-rare
-    // local caching; switch to SHA-256 if you need stronger guarantees.)
     return std::to_string(std::hash<std::string>{}(url)) + ".bin";
 }
 
@@ -23,9 +21,9 @@ std::string SnapshotFilePath(const std::string& dir, const std::string& url) {
     return dir + "/" + FileNameForURL(url);
 }
 
-// ---- Capture ---------------------------------------------------------------
+// ---- Capture ----
 
-// Response filter that appends streamed bytes to a file.
+// Passes response bytes through unchanged while teeing a copy to disk.
 class FileTeeFilter : public CefResponseFilter {
 public:
     explicit FileTeeFilter(const std::string& path) : path_(path) {}
@@ -37,7 +35,6 @@ public:
 
     FilterStatus Filter(void* data_in, size_t data_in_size, size_t& data_in_read,
                         void* data_out, size_t data_out_size, size_t& data_out_written) override {
-        // Pass data through unchanged, copying a tee to disk.
         if (data_in && data_in_size > 0) {
             out_.write(static_cast<const char*>(data_in), data_in_size);
         }
@@ -61,7 +58,6 @@ public:
     CefRefPtr<CefResponseFilter> GetResourceResponseFilter(
         CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, CefRefPtr<CefRequest> request,
         CefRefPtr<CefResponse> response) override {
-        // Skip JavaScript entirely — it is never stored.
         if (request->GetResourceType() == RT_SCRIPT) { return nullptr; }
 
         const std::string url = request->GetURL().ToString();
@@ -71,7 +67,6 @@ public:
 
 private:
     void AppendManifest(const std::string& url, const std::string& mime) {
-        // One JSON-line per resource: {"url":..., "file":..., "mime":...}
         NSString* line = [NSString stringWithFormat:
             @"{\"url\":%@,\"file\":%@,\"mime\":%@}\n",
             JSONString(url), JSONString(FileNameForURL(url)), JSONString(mime)];
@@ -89,7 +84,6 @@ private:
     static NSString* JSONString(const std::string& s) {
         NSData* d = [NSJSONSerialization dataWithJSONObject:@[NS(s)] options:0 error:nil];
         NSString* arr = [[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding];
-        // arr is `["..."]`; strip the brackets to get the quoted string.
         return [arr substringWithRange:NSMakeRange(1, arr.length - 2)];
     }
 
@@ -97,7 +91,7 @@ private:
     IMPLEMENT_REFCOUNTING(CaptureHandler);
 };
 
-// ---- Replay ----------------------------------------------------------------
+// ---- Replay ----
 
 class ReplayHandler : public CefResourceRequestHandler {
 public:
@@ -105,10 +99,8 @@ public:
 
     CefRefPtr<CefResourceHandler> GetResourceHandler(
         CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, CefRefPtr<CefRequest> request) override {
-        // Never serve (or run) scripts offline.
-        if (request->GetResourceType() == RT_SCRIPT) {
-            return EmptyHandler();
-        }
+        if (request->GetResourceType() == RT_SCRIPT) { return EmptyHandler(); }
+
         const std::string url = request->GetURL().ToString();
         NSString* path = NS(SnapshotFilePath(dir_, url));
         NSData* data = [NSData dataWithContentsOfFile:path];
@@ -128,8 +120,6 @@ private:
     }
 
     std::string MimeForURL(const std::string& url) {
-        // Read MIME from the manifest; fall back to octet-stream.
-        // (Linear scan is fine for the modest number of resources per page.)
         NSString* manifest = [NS(dir_) stringByAppendingPathComponent:@"manifest.jsonl"];
         NSString* contents = [NSString stringWithContentsOfFile:manifest
                                                        encoding:NSUTF8StringEncoding error:nil];

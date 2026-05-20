@@ -1,7 +1,7 @@
 import Foundation
 
-/// Turns explorer start-page input into a URL: either the typed address or a
-/// Google search. Google is the default (and only) search engine for now.
+/// Turns explorer start-page input into a URL: the typed address or a Google
+/// search. Google is the default (and only) search engine.
 enum SearchURLBuilder {
     static func url(from input: String) -> URL? {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -22,13 +22,10 @@ enum SearchURLBuilder {
         return components?.url
     }
 
-    /// Heuristic: a single token with a dot and no spaces (or an explicit scheme)
-    /// is treated as an address; everything else is a search.
     private static func looksLikeURL(_ s: String) -> Bool {
         if s.contains("://") { return true }
         if s.contains(" ") { return false }
         guard let dot = s.firstIndex(of: ".") else { return false }
-        // Reject a trailing dot with nothing after it (e.g. "hello.").
         return dot < s.index(before: s.endIndex)
     }
 }

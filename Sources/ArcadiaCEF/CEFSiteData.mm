@@ -6,7 +6,6 @@
 
 namespace {
 
-// Completion shim for DeleteCookies.
 class DeleteCookiesDone : public CefDeleteCookiesCallback {
 public:
     explicit DeleteCookiesDone(void (^block)(void)) : block_(block) {}
@@ -27,8 +26,6 @@ private:
                   completion:(void (^)(void))completion {
     if (cachePath.length == 0) { if (completion) { completion(); } return; }
 
-    // Open the on-disk context, purge its cookies, then remove the directory so
-    // cache (HTML/media/etc.) is gone too.
     CefRefPtr<CefRequestContext> ctx =
         arcadia::CreatePersistentContext(cachePath.UTF8String);
     CefRefPtr<CefCookieManager> cookies = ctx->GetCookieManager(nullptr);

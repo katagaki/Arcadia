@@ -2,19 +2,8 @@ import SwiftUI
 import SwiftData
 import ArcadiaCEF
 
-/// Settings window (⌘,). A tab view; for now the only tab clears site data for
-/// sites that persisted login.
-struct SettingsView: View {
-    var body: some View {
-        TabView {
-            SiteDataSettingsView()
-                .tabItem { Label("Site Data", systemImage: "externaldrive.badge.xmark") }
-        }
-        .frame(width: 480, height: 320)
-    }
-}
-
-private struct SiteDataSettingsView: View {
+/// Lists sites with persisted login and lets the user clear each one's data.
+struct SiteDataSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \PersistedLoginSite.domain) private var sites: [PersistedLoginSite]
 

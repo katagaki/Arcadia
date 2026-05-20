@@ -4,15 +4,13 @@
 
 namespace arcadia {
 
-// Capture: tees every loaded resource to `snapshotDir`, EXCEPT JavaScript
-// (RT_SCRIPT), and records a manifest mapping original URL -> local file + MIME.
+/// Tees every loaded resource to `snapshotDir` except JavaScript, recording a
+/// manifest of original URL to local file and MIME type.
 CefRefPtr<CefResourceRequestHandler> MakeCaptureResourceHandler(const std::string& snapshotDir);
 
-// Replay: serves resources from `snapshotDir` by original URL and returns an
-// empty 404 for any script request, so cached pages render without JS running.
+/// Serves resources from `snapshotDir` by original URL; returns 404 for scripts.
 CefRefPtr<CefResourceRequestHandler> MakeReplayResourceHandler(const std::string& snapshotDir);
 
-// Stable on-disk filename for a resource URL within a snapshot.
 std::string FileNameForURL(const std::string& url);
 
 }  // namespace arcadia

@@ -10,7 +10,6 @@ enum AppPaths {
         return dir
     }
 
-    /// Offline snapshot directory for a bookmark.
     static func snapshotDirectory(_ id: UUID) -> URL {
         let dir = root.appendingPathComponent("Snapshots", isDirectory: true)
             .appendingPathComponent(id.uuidString, isDirectory: true)
@@ -18,7 +17,6 @@ enum AppPaths {
         return dir
     }
 
-    /// Persistent request-context cache directory for a login-persisted domain.
     static func contextDirectory(forDomain domain: String) -> URL {
         let safe = domain.replacingOccurrences(of: "/", with: "_")
         let dir = root.appendingPathComponent("Contexts", isDirectory: true)

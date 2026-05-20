@@ -5,7 +5,6 @@ namespace arcadia {
 
 namespace {
 
-// Re-applies privacy prefs once a freshly created context is initialized.
 class PrivacyContextHandler : public CefRequestContextHandler {
 public:
     void OnRequestContextInitialized(CefRefPtr<CefRequestContext> context) override {
@@ -18,8 +17,7 @@ private:
 }  // namespace
 
 CefRefPtr<CefRequestContext> CreateEphemeralContext() {
-    CefRequestContextSettings settings;
-    // No cache_path => in-memory only.
+    CefRequestContextSettings settings;  // no cache_path => in-memory
     return CefRequestContext::CreateContext(settings, new PrivacyContextHandler());
 }
 

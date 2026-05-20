@@ -1,8 +1,7 @@
 import Foundation
 import SwiftData
 
-/// A user-created group in the sidebar that holds bookmarks. Workspaces can be
-/// freely expanded and collapsed; `isExpanded` persists that state.
+/// A sidebar group of bookmarks. `isExpanded` persists the collapse state.
 @Model
 final class Workspace {
     @Attribute(.unique) var id: UUID

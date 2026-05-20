@@ -1,9 +1,6 @@
 import SwiftUI
 import SwiftData
 
-/// The detail pane: the web content (or the explorer start page when the
-/// hierarchy is empty), with the native breadcrumb pinned to the bottom and an
-/// optional login-persistence prompt.
 struct BrowserView: View {
     @ObservedObject var session: BrowserSession
     @EnvironmentObject var coordinator: BrowserCoordinator

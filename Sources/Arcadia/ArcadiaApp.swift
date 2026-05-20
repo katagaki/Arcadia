@@ -9,7 +9,7 @@ struct ArcadiaApp: App {
     let modelContainer: ModelContainer
 
     init() {
-        // Ensure the CEF-required NSApplication subclass is the live instance.
+        // Make the CEF-required NSApplication subclass the live instance.
         ArcadiaApplication.ensureLoaded()
         do {
             modelContainer = try ModelContainer(
@@ -26,7 +26,6 @@ struct ArcadiaApp: App {
         .modelContainer(modelContainer)
         .windowStyle(.titleBar)
         .commands {
-            // No browser toolbar; the only chrome beyond the sidebar/breadcrumb.
             CommandGroup(replacing: .newItem) {}
         }
 

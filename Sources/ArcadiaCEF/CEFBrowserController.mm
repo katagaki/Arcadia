@@ -46,8 +46,6 @@
 - (BOOL)canGoForward { return _canGoForward; }
 
 - (void)createBrowser {
-    // Choose the request context: ephemeral by default; persistent only for
-    // login-persisted sites.
     if (_config.storageMode == CEFStorageModePersistent && _config.persistentCachePath.length) {
         _context = arcadia::CreatePersistentContext(_config.persistentCachePath.UTF8String);
     } else {
@@ -63,13 +61,11 @@
     window_info.SetAsChild((__bridge CefWindowHandle)_container, bounds);
 
     CefBrowserSettings browser_settings;
-
-    // Start blank; the app drives the first real navigation.
     CefBrowserHost::CreateBrowser(window_info, _client.get(), CefString("about:blank"),
                                   browser_settings, nullptr, _context);
 }
 
-- (void)loadURL:(NSString *)url {
+- (void)load:(NSString *)url {
     if (!_client || !_client->browser()) { return; }
     _client->browser()->GetMainFrame()->LoadURL(CefString(url.UTF8String));
 }
@@ -80,17 +76,15 @@
 - (void)stopLoading { if (_client && _client->browser()) { _client->browser()->StopLoad(); } }
 
 - (void)captureSnapshotWithID:(NSString *)snapshotID {
-    // Capture mode tees resources during load; force a reload to (re)populate
-    // the snapshot, then notify on the next load-complete.
+    // Capture mode tees resources during load; reload to populate the snapshot.
     _pendingCaptureID = snapshotID;
     [self reload];
 }
 
 - (void)close {
     if (_client && _client->browser()) {
-        _client->browser()->GetHost()->CloseBrowser(/*force_close*/ true);
+        _client->browser()->GetHost()->CloseBrowser(true);
     }
-    // Releasing the ephemeral context here is what wipes the site's cookies.
     _client = nullptr;
     _context = nullptr;
 }
@@ -98,7 +92,6 @@
 #pragma mark - CEFClientSink (main thread)
 
 - (void)sinkAfterCreated {
-    // Resize the child browser view to fill the container as it grows.
     for (NSView *sub in _container.subviews) {
         sub.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
         sub.frame = _container.bounds;
