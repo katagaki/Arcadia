@@ -1,0 +1,128 @@
+# XcodeGen project definition for Arcadia.
+# Generate the Xcode project on a Mac with:  xcodegen generate
+# (brew install xcodegen).  CEF must be present under third_party/cef/ first
+# (run Scripts/fetch_cef.sh).
+#
+# NOTE: CEF on macOS needs nested helper .app bundles and the embedded
+# "Chromium Embedded Framework.framework". XcodeGen sets up the targets and
+# search paths below, but the exact copy/sign build phases for the framework and
+# helpers typically need a final manual pass in Xcode (see README "CEF embedding").
+
+name: Arcadia
+options:
+  minimumXcodeGenVersion: "2.40.0"
+  bundleIdPrefix: app.arcadia
+  deploymentTarget:
+    macOS: "26.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    CLANG_ENABLE_MODULES: YES
+    CLANG_CXX_LANGUAGE_STANDARD: "c++20"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    # CEF binaries live here; adjust if you fetched a different layout.
+    CEF_ROOT: "$(SRCROOT)/third_party/cef"
+    FRAMEWORK_SEARCH_PATHS:
+      - "$(CEF_ROOT)/Release"
+      - "$(inherited)"
+    HEADER_SEARCH_PATHS:
+      - "$(CEF_ROOT)"
+      - "$(inherited)"
+
+targets:
+  Arcadia:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/Arcadia
+    dependencies:
+      - target: ArcadiaCEF
+      - target: "ArcadiaHelper"
+        embed: true
+        codeSign: true
+      - target: "ArcadiaHelper_GPU"
+        embed: true
+        codeSign: true
+      - target: "ArcadiaHelper_Renderer"
+        embed: true
+        codeSign: true
+      - target: "ArcadiaHelper_Plugin"
+        embed: true
+        codeSign: true
+      - target: "ArcadiaHelper_Alerts"
+        embed: true
+        codeSign: true
+    settings:
+      base:
+        INFOPLIST_FILE: Sources/Arcadia/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/Arcadia/Resources/Arcadia.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: app.arcadia.Arcadia
+        # App Sandbox is OFF for now (CEF + sandbox is impractical). See README.
+        ENABLE_HARDENED_RUNTIME: YES
+    # The CEF framework must be copied into Contents/Frameworks. XcodeGen can't
+    # express CEF's exact embed step cleanly; do this in Xcode (see README).
+
+  ArcadiaCEF:
+    type: framework
+    platform: macOS
+    sources:
+      - path: Sources/ArcadiaCEF
+    settings:
+      base:
+        DEFINES_MODULE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.arcadia.ArcadiaCEF
+        OTHER_LDFLAGS:
+          - "-framework"
+          - "Chromium Embedded Framework"
+
+  # ---- CEF helper executables (minimal C++ mains calling CefExecuteProcess) ----
+  ArcadiaHelper:
+    type: application
+    platform: macOS
+    productName: "Arcadia Helper"
+    sources: [Sources/ArcadiaHelper]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.arcadia.Arcadia.helper
+        INFOPLIST_FILE: Sources/ArcadiaHelper/Helper-Info.plist
+
+  ArcadiaHelper_GPU:
+    type: application
+    platform: macOS
+    productName: "Arcadia Helper (GPU)"
+    sources: [Sources/ArcadiaHelper]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.arcadia.Arcadia.helper.gpu
+        INFOPLIST_FILE: Sources/ArcadiaHelper/Helper-Info.plist
+
+  ArcadiaHelper_Renderer:
+    type: application
+    platform: macOS
+    productName: "Arcadia Helper (Renderer)"
+    sources: [Sources/ArcadiaHelper]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.arcadia.Arcadia.helper.renderer
+        INFOPLIST_FILE: Sources/ArcadiaHelper/Helper-Info.plist
+
+  ArcadiaHelper_Plugin:
+    type: application
+    platform: macOS
+    productName: "Arcadia Helper (Plugin)"
+    sources: [Sources/ArcadiaHelper]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.arcadia.Arcadia.helper.plugin
+        INFOPLIST_FILE: Sources/ArcadiaHelper/Helper-Info.plist
+
+  ArcadiaHelper_Alerts:
+    type: application
+    platform: macOS
+    productName: "Arcadia Helper (Alerts)"
+    sources: [Sources/ArcadiaHelper]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.arcadia.Arcadia.helper.alerts
+        INFOPLIST_FILE: Sources/ArcadiaHelper/Helper-Info.plist

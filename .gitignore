@@ -1,0 +1,20 @@
+# --- CEF binary distribution (large; fetched via Scripts/fetch_cef.sh) ---
+third_party/cef/
+
+# --- Xcode / build products ---
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+!project.yml
+
+# --- macOS ---
+.DS_Store
+
+# --- App data generated at runtime ---
+Snapshots/
+
+# --- Swift / SPM ---
+.build/
+*.swiftpm
+Package.resolved
