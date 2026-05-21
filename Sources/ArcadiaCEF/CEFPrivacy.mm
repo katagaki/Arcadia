@@ -3,15 +3,9 @@
 
 void ArcadiaApplyPrivacyPreferences(CefRefPtr<CefRequestContext> context) {
     if (!context) { return; }
+    if (!context->CanSetPreference("profile.cookie_controls_mode")) { return; }
 
-    // Preferences can only be set once the context is fully initialized.
-    if (!context->CanSetPreference("profile.cookie_controls_mode")) {
-        return;
-    }
-
-    // Chromium's cookie-controls mode. Value 1 == "block third-party cookies"
-    // (CookieControlsMode::kBlockThirdParty). There is intentionally no UI to
-    // change this.
+    // 1 == CookieControlsMode::kBlockThirdParty.
     CefRefPtr<CefValue> blockThirdParty = CefValue::Create();
     blockThirdParty->SetInt(1);
 

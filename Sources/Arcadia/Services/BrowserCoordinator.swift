@@ -3,13 +3,13 @@ import SwiftData
 import ArcadiaCEF
 
 /// Top-level browsing state: the active session, opening bookmarks, creating
-/// bookmarks (with offline capture), and persisting login for a site.
+/// bookmarks with offline capture, and persisting login for a site.
 @MainActor
 final class BrowserCoordinator: ObservableObject {
     @Published private(set) var activeSession: BrowserSession
 
-    /// Domains the user opted to keep logged in (mirrors PersistedLoginSite).
     private var persistedDomains: Set<String> = []
+    private var captureSessions: Set<BrowserSession> = []
 
     init() {
         activeSession = BrowserCoordinator.makeExplorerSession()
@@ -24,7 +24,6 @@ final class BrowserCoordinator: ObservableObject {
         return BrowserSession(kind: .explorer, configuration: config)
     }
 
-    /// Switch back to a fresh explorer (the single non-workspace tab).
     func showExplorer() {
         if activeSession.kind != .explorer {
             activeSession.close()
@@ -33,8 +32,6 @@ final class BrowserCoordinator: ObservableObject {
         activeSession.clearToStartPage()
     }
 
-    /// Open a bookmark. Live (with persistent storage if the domain opted in)
-    /// and falls back to the offline snapshot when offline.
     func openBookmark(_ bookmark: Bookmark) {
         activeSession.close()
 
@@ -58,9 +55,8 @@ final class BrowserCoordinator: ObservableObject {
         if let url = bookmark.url { session.load(url.absoluteString) }
     }
 
-    // MARK: Bookmarking + offline capture
+    // MARK: Bookmarking and offline capture
 
-    /// Save the active page into `workspace` and cache it offline (no JS).
     func addBookmark(to workspace: Workspace, context: ModelContext) {
         let session = activeSession
         guard !session.currentURL.isEmpty, session.currentURL != "about:blank" else { return }
@@ -76,7 +72,6 @@ final class BrowserCoordinator: ObservableObject {
         captureSnapshot(for: bookmark, sourceURL: session.currentURL, context: context)
     }
 
-    /// Spin up a hidden capture session to write the offline snapshot.
     private func captureSnapshot(for bookmark: Bookmark, sourceURL: String, context: ModelContext) {
         let snapshotID = UUID()
         let config = CEFBrowserConfiguration()
@@ -85,7 +80,6 @@ final class BrowserCoordinator: ObservableObject {
         config.snapshotDirectory = AppPaths.snapshotDirectory(snapshotID).path
 
         let capture = BrowserSession(kind: .bookmark(bookmark.id), configuration: config)
-        // Keep it alive until capture completes.
         captureSessions.insert(capture)
 
         var observer: NSObjectProtocol?
@@ -100,12 +94,8 @@ final class BrowserCoordinator: ObservableObject {
         capture.load(sourceURL)
     }
 
-    private var captureSessions: Set<BrowserSession> = []
-
     // MARK: Login persistence
 
-    /// User opted to stay signed in to the active site: migrate it to a
-    /// persistent context and record it.
     func persistLogin(context: ModelContext) {
         guard let host = URL(string: activeSession.currentURL)?.host else { return }
         guard !persistedDomains.contains(host) else { return }
@@ -115,8 +105,6 @@ final class BrowserCoordinator: ObservableObject {
         context.insert(PersistedLoginSite(domain: host, requestContextPath: path))
         try? context.save()
 
-        // Reload the current page in a persistent context so cookies stick.
-        if case .bookmark = activeSession.kind {} // bookmarks reopen persistently
         activeSession.loginPromptVisible = false
     }
 

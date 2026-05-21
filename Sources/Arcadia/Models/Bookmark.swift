@@ -1,9 +1,7 @@
 import Foundation
 import SwiftData
 
-/// A saved page inside a workspace. Bookmarks are Arcadia's only persistent
-/// "tabs". When created, the page is cached offline (HTML/images/video, no JS);
-/// `offlineSnapshotID` names that on-disk snapshot directory.
+/// A saved page inside a workspace, cached offline (HTML/images/video, no JS).
 @Model
 final class Bookmark {
     @Attribute(.unique) var id: UUID
@@ -12,11 +10,10 @@ final class Bookmark {
     var faviconData: Data?
     var sortIndex: Int
 
-    /// Identifier of the offline snapshot directory under
-    /// Application Support/Arcadia/Snapshots/. Nil until caching completes.
+    /// Snapshot directory name under Snapshots/. Nil until caching completes.
     var offlineSnapshotID: UUID?
 
-    /// Whether this site is allowed to persist login (cookies stored on disk).
+    /// Whether this site may persist login (cookies stored on disk).
     var persistLogin: Bool
 
     var workspace: Workspace?

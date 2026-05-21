@@ -1,16 +1,13 @@
 import Foundation
 import SwiftData
 
-/// A domain whose login the user chose to persist. Cookies/cache for these sites
-/// are stored in a persistent CEF request context (on disk) instead of the
-/// default ephemeral one. The Settings "Site Data" tab lists these and lets the
-/// user clear each one.
+/// A domain whose login the user chose to persist. Its cookies/cache live in an
+/// on-disk request context; Settings can clear them.
 @Model
 final class PersistedLoginSite {
     @Attribute(.unique) var domain: String
 
-    /// Path (relative to Application Support/Arcadia/Contexts/) of the persistent
-    /// request-context cache directory backing this domain.
+    /// Path of the persistent request-context cache directory for this domain.
     var requestContextPath: String
 
     var dateAdded: Date

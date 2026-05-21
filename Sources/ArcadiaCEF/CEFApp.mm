@@ -7,7 +7,6 @@
 
 namespace {
 
-// Browser-process application handler.
 class ArcadiaBrowserApp : public CefApp, public CefBrowserProcessHandler {
 public:
     ArcadiaBrowserApp() = default;
@@ -16,7 +15,6 @@ public:
         return this;
     }
 
-    // Register the offline-replay scheme as standard + secure in every process.
     void OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) override {
         registrar->AddCustomScheme(
             ARCADIA_CACHE_SCHEME,
@@ -24,8 +22,6 @@ public:
             CEF_SCHEME_OPTION_CORS_ENABLED);
     }
 
-    // Apply always-on privacy to the GLOBAL context once it is ready. Every
-    // per-site context created later also re-applies this (see CEFPrivacy).
     void OnContextInitialized() override {
         ArcadiaApplyPrivacyPreferences(CefRequestContext::GetGlobalContext());
     }

@@ -2,8 +2,6 @@ import AppKit
 import Combine
 import ArcadiaCEF
 
-/// What a session represents: the single ephemeral explorer, or an opened
-/// bookmark from a workspace.
 enum SessionKind: Equatable {
     case explorer
     case bookmark(UUID)
@@ -20,9 +18,7 @@ final class BrowserSession: NSObject, ObservableObject, CEFBrowserDelegate {
     @Published var currentURL: String = ""
     @Published var isLoading: Bool = false
     @Published var favicon: NSImage?
-    /// True at the explorer start page (empty hierarchy): show the URL field.
     @Published var isAtStartPage: Bool = true
-    /// Set when a password field is detected and login isn't yet persisted.
     @Published var loginPromptVisible: Bool = false
 
     init(kind: SessionKind, configuration: CEFBrowserConfiguration) {
@@ -34,7 +30,6 @@ final class BrowserSession: NSObject, ObservableObject, CEFBrowserDelegate {
 
     // MARK: Navigation
 
-    /// Explorer start-page entry: resolve to a URL or a Google search and load.
     func submitStartPageInput(_ input: String) {
         guard let url = SearchURLBuilder.url(from: input) else { return }
         isAtStartPage = false
@@ -57,14 +52,11 @@ final class BrowserSession: NSObject, ObservableObject, CEFBrowserDelegate {
         if let node = chain.current { controller.load(node.url) }
     }
 
-    /// Jump to a breadcrumb crumb, trimming forward history.
     func jumpToCrumb(_ index: Int) {
         chain.jump(to: index)
         if let node = chain.current { controller.load(node.url) }
     }
 
-    /// Return to the explorer start page (clears the hierarchy). Only meaningful
-    /// for the explorer session.
     func clearToStartPage() {
         chain.clear()
         isAtStartPage = true
@@ -99,8 +91,6 @@ final class BrowserSession: NSObject, ObservableObject, CEFBrowserDelegate {
     }
 
     func browser(_ browser: CEFBrowserController, shouldAllowNavigationTo url: String) -> Bool {
-        // The C++ side already blocks non-web schemes; allow everything that
-        // reaches here. Hook for future per-site policy.
         true
     }
 

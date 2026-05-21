@@ -1,9 +1,8 @@
 import SwiftUI
 
-/// Native bottom breadcrumb. Replaces the usual top toolbar: it shows the
-/// navigation hierarchy and lets the user jump back to any ancestor. There is no
-/// address bar here — visiting a new site means bookmarking or clearing the
-/// hierarchy back to the explorer start page.
+/// Native bottom navigation. Replaces the top toolbar: it shows the navigation
+/// hierarchy and lets the user jump back to any ancestor. There is no address
+/// bar; a new destination means bookmarking or clearing back to the start page.
 struct BreadcrumbBar: View {
     @ObservedObject var session: BrowserSession
     var onClearToStart: () -> Void
@@ -22,25 +21,7 @@ struct BreadcrumbBar: View {
 
             Divider().frame(height: 14)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(Array(session.chain.nodes.enumerated()), id: \.element.id) { index, node in
-                        if index > 0 {
-                            Image(systemName: "chevron.compact.right")
-                                .foregroundStyle(.tertiary)
-                        }
-                        Button {
-                            session.jumpToCrumb(index)
-                        } label: {
-                            Text(crumbLabel(node))
-                                .lineLimit(1)
-                                .fontWeight(index == session.chain.currentIndex ? .semibold : .regular)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(index == session.chain.currentIndex ? .primary : .secondary)
-                    }
-                }
-            }
+            crumbs
 
             Spacer(minLength: 8)
 
@@ -60,6 +41,28 @@ struct BreadcrumbBar: View {
         .padding(.horizontal, 10)
         .frame(height: 32)
         .background(.bar)
+    }
+
+    private var crumbs: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(Array(session.chain.nodes.enumerated()), id: \.element.id) { index, node in
+                    if index > 0 {
+                        Image(systemName: "chevron.compact.right")
+                            .foregroundStyle(.tertiary)
+                    }
+                    Button {
+                        session.jumpToCrumb(index)
+                    } label: {
+                        Text(crumbLabel(node))
+                            .lineLimit(1)
+                            .fontWeight(index == session.chain.currentIndex ? .semibold : .regular)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(index == session.chain.currentIndex ? .primary : .secondary)
+                }
+            }
+        }
     }
 
     private func crumbLabel(_ node: NavNode) -> String {

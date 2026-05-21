@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// The main browser window: sidebar (workspaces + bookmarks) and the detail pane
-/// (web content + bottom breadcrumb). No top toolbar beyond the sidebar controls.
 struct MainWindowView: View {
     @StateObject private var coordinator = BrowserCoordinator()
 

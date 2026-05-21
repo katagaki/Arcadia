@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// The explorer start page (new-tab replacement): a single field for a URL or a
-/// Google search. Shown only when the navigation hierarchy is empty.
+/// The explorer start page: a single field for a URL or a Google search.
 struct ExplorerStartView: View {
     @ObservedObject var session: BrowserSession
     @State private var input: String = ""
