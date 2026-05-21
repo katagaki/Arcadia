@@ -1,5 +1,5 @@
-# --- CEF binary distribution (large; fetched via Scripts/fetch_cef.sh) ---
-third_party/cef/
+# --- Prebuilt engine framework (large; built via Scripts/build_crwebview.sh) ---
+third_party/crwebview/
 
 # --- Xcode / build products ---
 build/

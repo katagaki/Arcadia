@@ -1,6 +1,6 @@
 import SwiftUI
 import SwiftData
-import ArcadiaCEF
+import CRWebView
 
 /// Lists sites with persisted login and lets the user clear each one's data.
 struct SiteDataSettingsView: View {
@@ -37,7 +37,7 @@ struct SiteDataSettingsView: View {
     }
 
     private func clear(_ site: PersistedLoginSite) {
-        CEFSiteData.clearData(atCachePath: site.requestContextPath) {
+        CRSiteData.clearData(atProfilePath: site.requestContextPath) {
             modelContext.delete(site)
             try? modelContext.save()
         }

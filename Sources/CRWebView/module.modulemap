@@ -1,0 +1,5 @@
+framework module CRWebView {
+  umbrella header "CRWebView.h"
+  export *
+  module * { export * }
+}

@@ -1,0 +1,247 @@
+# Builds CRWebView.framework (+ helper apps + Chromium runtime payload) from
+# inside a Chromium checkout, overlaid at //arcadia/crwebview by
+# Scripts/build_crwebview.sh.
+#
+# Structure mirrors //content/shell:content_shell plus Chrome's per-type helper
+# loop (//chrome:chrome_helper_app). Template and dependency names track the
+# pinned Chromium milestone — see Sources/CRWebView/README.md for the parts that
+# need a finishing pass on uplift.
+
+import("//build/config/mac/rules.gni")
+import("//mojo/public/tools/bindings/mojom.gni")
+import("//tools/grit/repack.gni")
+import("//v8/gni/snapshot_toolchain.gni")
+
+# ---- renderer <-> browser IPC ------------------------------------------------
+
+mojom("mojo_bindings") {
+  sources = [ "common/crwebview.mojom" ]
+  public_deps = [ "//mojo/public/mojom/base" ]
+}
+
+# ---- the embedder library (all process types) --------------------------------
+
+config("crwebview_config") {
+  # Lets the .mm files resolve <CRWebView/CRWebView.h> against public/ before
+  # the framework is assembled.
+  include_dirs = [ "public" ]
+}
+
+source_set("crwebview_lib") {
+  sources = [
+    "app/arcadia_application.mm",
+    "app/crwebview_engine.mm",
+    "app/crwebview_main_delegate.cc",
+    "app/crwebview_main_delegate.h",
+    "browser/crwebview.mm",
+    "browser/crwebview_browser_context.cc",
+    "browser/crwebview_browser_context.h",
+    "browser/crwebview_browser_main_parts.cc",
+    "browser/crwebview_browser_main_parts.h",
+    "browser/crwebview_content_browser_client.cc",
+    "browser/crwebview_content_browser_client.h",
+    "browser/crwebview_login_form_detector_impl.cc",
+    "browser/crwebview_login_form_detector_impl.h",
+    "browser/crwebview_navigation_throttle.cc",
+    "browser/crwebview_navigation_throttle.h",
+    "browser/crwebview_offline_url_loader_factory.cc",
+    "browser/crwebview_offline_url_loader_factory.h",
+    "browser/crwebview_privacy.cc",
+    "browser/crwebview_privacy.h",
+    "browser/crwebview_site_data.mm",
+    "browser/crwebview_state.cc",
+    "browser/crwebview_state.h",
+    "common/crwebview_content_client.cc",
+    "common/crwebview_content_client.h",
+    "common/crwebview_offline_mode.h",
+    "common/crwebview_scheme_constants.h",
+    "renderer/crwebview_content_renderer_client.cc",
+    "renderer/crwebview_content_renderer_client.h",
+    "renderer/crwebview_login_form_observer.cc",
+    "renderer/crwebview_login_form_observer.h",
+  ]
+  public_configs = [ ":crwebview_config" ]
+  deps = [
+    ":mojo_bindings",
+    "//base",
+    "//content/public/app",
+    "//content/public/browser",
+    "//content/public/common",
+    "//content/public/renderer",
+    "//mojo/public/cpp/bindings",
+    "//net",
+    "//services/network/public/cpp",
+    "//services/network/public/mojom",
+    "//third_party/blink/public:blink_headers",
+    "//ui/base",
+    "//ui/gfx",
+    "//ui/gfx/codec",
+    "//url",
+  ]
+  frameworks = [
+    "AppKit.framework",
+    "Cocoa.framework",
+    "Foundation.framework",
+  ]
+}
+
+# ---- runtime payload bundled into the framework Resources --------------------
+
+repack("repack_resources") {
+  sources = [
+    "$root_gen_dir/content/content_resources.pak",
+    "$root_gen_dir/mojo/public/js/mojo_bindings_resources.pak",
+    "$root_gen_dir/net/net_resources.pak",
+    "$root_gen_dir/third_party/blink/public/resources/blink_resources.pak",
+    "$root_gen_dir/ui/resources/webui_resources.pak",
+  ]
+  output = "$target_gen_dir/resources.pak"
+  deps = [
+    "//content:content_resources",
+    "//mojo/public/js:resources",
+    "//net:net_resources",
+    "//third_party/blink/public:resources",
+    "//ui/resources",
+  ]
+}
+
+bundle_data("framework_resources") {
+  sources = [
+    "$target_gen_dir/resources.pak",
+    "//third_party/icu/common/icudtl.dat",
+  ]
+  outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+  public_deps = [
+    ":repack_resources",
+    "//third_party/icu:icudata",
+  ]
+}
+
+bundle_data("framework_v8_snapshot") {
+  sources = [ "$root_out_dir/v8_context_snapshot.bin" ]
+  outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+  public_deps = [ "//tools/v8_context_snapshot" ]
+}
+
+bundle_data("framework_angle") {
+  sources = [
+    "$root_out_dir/libEGL.dylib",
+    "$root_out_dir/libGLESv2.dylib",
+  ]
+  outputs = [ "{{bundle_contents_dir}}/Libraries/{{source_file_part}}" ]
+  public_deps = [ "//third_party/angle:libEGL", "//third_party/angle:libGLESv2" ]
+}
+
+# Lets Swift `import CRWebView`.
+bundle_data("framework_modulemap") {
+  sources = [ "module.modulemap" ]
+  outputs = [ "{{bundle_contents_dir}}/Modules/module.modulemap" ]
+}
+
+# ---- helper apps (one binary, five bundles by type + entitlements) -----------
+
+# Each entry: visible name suffix, bundle-id suffix, entitlements file.
+_helpers = [
+  {
+    name = ""
+    bundle_id = "helper"
+    entitlements = "helper/entitlements/default.entitlements"
+  },
+  {
+    name = " (GPU)"
+    bundle_id = "helper.gpu"
+    entitlements = "helper/entitlements/gpu.entitlements"
+  },
+  {
+    name = " (Renderer)"
+    bundle_id = "helper.renderer"
+    entitlements = "helper/entitlements/renderer.entitlements"
+  },
+  {
+    name = " (Plugin)"
+    bundle_id = "helper.plugin"
+    entitlements = "helper/entitlements/default.entitlements"
+  },
+  {
+    name = " (Alerts)"
+    bundle_id = "helper.alerts"
+    entitlements = "helper/entitlements/default.entitlements"
+  },
+]
+
+_helper_targets = []
+foreach(helper, _helpers) {
+  _target = "crwebview_helper_app${helper.bundle_id}"
+  _helper_targets += [ ":$_target" ]
+  mac_app_bundle(_target) {
+    output_name = "Arcadia Helper${helper.name}"
+    sources = [ "helper/process_helper_main.cc" ]
+    deps = [
+      ":crwebview_lib",
+      "//content/public/app",
+      "//sandbox/mac:seatbelt",
+    ]
+    info_plist = "helper/Helper-Info.plist"
+    extra_substitutions = [ "CRWEBVIEW_BUNDLE_ID_SUFFIX=${helper.bundle_id}" ]
+    entitlements = helper.entitlements
+  }
+}
+
+group("crwebview_helpers") {
+  public_deps = _helper_targets
+}
+
+# Helpers go inside the framework's Versions/A/Helpers/.
+bundle_data("framework_helpers") {
+  public_deps = _helper_targets
+  sources = []
+  foreach(helper, _helpers) {
+    sources += [ "$root_out_dir/Arcadia Helper${helper.name}.app" ]
+  }
+  outputs = [ "{{bundle_contents_dir}}/Helpers/{{source_file_part}}" ]
+}
+
+# ---- the framework -----------------------------------------------------------
+
+mac_framework_bundle("CRWebView") {
+  output_name = "CRWebView"
+  framework_version = "A"
+  framework_contents = [
+    "Helpers",
+    "Libraries",
+    "Resources",
+  ]
+  info_plist = "Framework-Info.plist"
+
+  public_headers = [
+    "public/CRWebView/ArcadiaApplication.h",
+    "public/CRWebView/CRSiteData.h",
+    "public/CRWebView/CRTypes.h",
+    "public/CRWebView/CRWebEngine.h",
+    "public/CRWebView/CRWebView.h",
+  ]
+  sources = public_headers
+
+  deps = [
+    ":crwebview_lib",
+    ":framework_angle",
+    ":framework_helpers",
+    ":framework_modulemap",
+    ":framework_resources",
+    ":framework_v8_snapshot",
+  ]
+  ldflags = [
+    "-compatibility_version",
+    "1.0.0",
+    "-current_version",
+    "1.0.0",
+  ]
+}
+
+# What Scripts/build_crwebview.sh builds.
+group("all") {
+  deps = [
+    ":CRWebView",
+    ":crwebview_helpers",
+  ]
+}

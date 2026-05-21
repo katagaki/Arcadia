@@ -1,17 +1,17 @@
 import AppKit
 import Combine
-import ArcadiaCEF
+import CRWebView
 
 enum SessionKind: Equatable {
     case explorer
     case bookmark(UUID)
 }
 
-/// Drives one CEF browser and maps its callbacks onto Arcadia's models: the
+/// Drives one CRWebView and maps its callbacks onto Arcadia's models: the
 /// breadcrumb navigation chain, loading state, title/favicon, login detection.
-final class BrowserSession: NSObject, ObservableObject, CEFBrowserDelegate {
+final class BrowserSession: NSObject, ObservableObject, CRWebViewDelegate {
     let kind: SessionKind
-    let controller: CEFBrowserController
+    let controller: CRWebView
     let chain = NavigationChain()
 
     @Published var title: String = ""
@@ -21,9 +21,9 @@ final class BrowserSession: NSObject, ObservableObject, CEFBrowserDelegate {
     @Published var isAtStartPage: Bool = true
     @Published var loginPromptVisible: Bool = false
 
-    init(kind: SessionKind, configuration: CEFBrowserConfiguration) {
+    init(kind: SessionKind, configuration: CRWebViewConfiguration) {
         self.kind = kind
-        self.controller = CEFBrowserController(configuration: configuration)
+        self.controller = CRWebView(configuration: configuration)
         super.init()
         self.controller.delegate = self
     }
@@ -68,37 +68,37 @@ final class BrowserSession: NSObject, ObservableObject, CEFBrowserDelegate {
         controller.close()
     }
 
-    // MARK: CEFBrowserDelegate
+    // MARK: CRWebViewDelegate
 
-    func browser(_ browser: CEFBrowserController, didChangeURL url: String) {
+    func webView(_ webView: CRWebView, didChangeURL url: String) {
         currentURL = url
         guard url != "about:blank" else { return }
         chain.recordNavigation(to: url, title: title)
         isAtStartPage = false
     }
 
-    func browser(_ browser: CEFBrowserController, didChange title: String) {
+    func webView(_ webView: CRWebView, didChange title: String) {
         self.title = title
         if !currentURL.isEmpty { chain.updateTitle(title, for: currentURL) }
     }
 
-    func browser(_ browser: CEFBrowserController, didChangeLoading isLoading: Bool) {
+    func webView(_ webView: CRWebView, didChangeLoading isLoading: Bool) {
         self.isLoading = isLoading
     }
 
-    func browser(_ browser: CEFBrowserController, didReceiveFavicon pngData: Data?) {
+    func webView(_ webView: CRWebView, didReceiveFavicon pngData: Data?) {
         favicon = pngData.flatMap(NSImage.init(data:))
     }
 
-    func browser(_ browser: CEFBrowserController, shouldAllowNavigationTo url: String) -> Bool {
+    func webView(_ webView: CRWebView, shouldAllowNavigationTo url: String) -> Bool {
         true
     }
 
-    func browserDidDetectLoginForm(_ browser: CEFBrowserController) {
+    func webViewDidDetectLoginForm(_ webView: CRWebView) {
         loginPromptVisible = true
     }
 
-    func browser(_ browser: CEFBrowserController, didFinishCaptureToSnapshot snapshotID: String) {
+    func webView(_ webView: CRWebView, didFinishCaptureToSnapshot snapshotID: String) {
         NotificationCenter.default.post(
             name: .arcadiaCaptureFinished, object: nil,
             userInfo: ["snapshotID": snapshotID])

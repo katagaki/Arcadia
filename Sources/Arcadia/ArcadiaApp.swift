@@ -1,6 +1,6 @@
 import SwiftUI
 import SwiftData
-import ArcadiaCEF
+import CRWebView
 
 @main
 struct ArcadiaApp: App {
@@ -9,7 +9,7 @@ struct ArcadiaApp: App {
     let modelContainer: ModelContainer
 
     init() {
-        // Make the CEF-required NSApplication subclass the live instance.
+        // Make the Chromium-required NSApplication subclass the live instance.
         ArcadiaApplication.ensureLoaded()
         do {
             modelContainer = try ModelContainer(

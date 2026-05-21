@@ -1,9 +1,10 @@
 # Arcadia
 
 A minimalist, native macOS web browser. The chrome is entirely SwiftUI/AppKit;
-Chromium (via the **Chromium Embedded Framework**, CEF) is used **only** to
-render pages. There are no traditional tabs — just **workspaces** of
-**bookmarks** in the sidebar, plus a single ephemeral **explorer** tab.
+Chromium is used **only** to render pages, via an in-house engine
+(**`CRWebView.framework`**) built from Chromium source. There are no traditional
+tabs — just **workspaces** of **bookmarks** in the sidebar, plus a single
+ephemeral **explorer** tab.
 
 ## Concepts
 
@@ -26,79 +27,86 @@ render pages. There are no traditional tabs — just **workspaces** of
 - macOS **26 Tahoe** or later.
 - Xcode with the macOS 26 SDK.
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
-- A CEF binary distribution (downloaded by the script below; not committed).
+- A Mac build machine with **~100 GB+ free disk** for the Chromium checkout used
+  to build `CRWebView.framework` (not committed; see below).
 
 ## Build
 
-```sh
-# 1. Fetch the CEF binary distribution into third_party/cef/
-#    (edit CEF_VERSION in the script to a current build from
-#     https://cef-builds.spotifycdn.com/index.html)
-Scripts/fetch_cef.sh
+Building has two phases: build the engine framework from Chromium source (slow,
+done occasionally), then build the app (fast, in Xcode).
 
-# 2. Generate the Xcode project from project.yml
+```sh
+# 1. Fetch a pinned Chromium checkout (depot_tools + ~100 GB sync).
+#    Pin CHROMIUM_VERSION in the script to a revision that builds against the
+#    macOS 26 SDK.
+Scripts/fetch_chromium.sh
+
+# 2. Build CRWebView.framework (+ helper apps + runtime payload) into
+#    third_party/crwebview/. First build is multi-hour.
+Scripts/build_crwebview.sh
+
+# 3. Generate the Xcode project from project.yml
 xcodegen generate
 
-# 3. Open and build/run
+# 4. Open and build/run
 open Arcadia.xcodeproj
 ```
 
-### CEF embedding (manual finishing step)
+### Engine embedding
 
-XcodeGen sets up the targets and search paths, but CEF's macOS bundle layout
-needs a final pass in Xcode (this mirrors the `cefsimple`/`cefclient` samples):
+`CRWebView.framework` bundles its own sub-process helper apps
+(`Versions/A/Helpers`) and Chromium runtime payload (`icudtl.dat`, `*.pak`, the
+v8 snapshot, ANGLE dylibs), so the app embeds **one** framework into
+`Contents/Frameworks/` (with code-signing on copy and `@rpath` set up by
+`project.yml`). Per-helper entitlements (renderer JIT, GPU, default) are baked
+into the helper bundles by the GN build — see `Sources/CRWebView/helper/`.
 
-1. **Embed the framework**: copy
-   `third_party/cef/Release/Chromium Embedded Framework.framework` into
-   `Arcadia.app/Contents/Frameworks/` (Copy Files build phase, "Frameworks",
-   **without** code-signing-on-copy if already signed; otherwise sign).
-2. **Helpers**: the five helper targets (`Arcadia Helper`, `… (GPU)`,
-   `… (Renderer)`, `… (Plugin)`, `… (Alerts)`) are embedded into
-   `Contents/Frameworks/`. Each must be signed.
-3. **Sign order**: framework and helpers first, then the app, with the
-   entitlements in `Sources/Arcadia/Resources/Arcadia.entitlements` and the
-   hardened runtime enabled.
-
-> **App Sandbox is off.** CEF's multi-process model is impractical to sandbox,
-> so Arcadia ships unsandboxed (Developer ID). Mac App Store distribution is out
-> of scope.
+> **App Sandbox is off.** Chromium's multi-process model is impractical to
+> sandbox, so Arcadia ships unsandboxed (Developer ID). Mac App Store
+> distribution is out of scope.
 
 ## Architecture
 
 | Layer | Where | Notes |
 |------|-------|------|
 | SwiftUI app | `Sources/Arcadia` | windows, sidebar, breadcrumb, settings, SwiftData models |
-| Engine bridge | `Sources/ArcadiaCEF` | Obj-C++ wrapper over CEF; exposes a pure-ObjC surface so Swift never sees CEF C++ types |
-| Sub-process helper | `Sources/ArcadiaHelper` | minimal `CefExecuteProcess` entry point shared by all helper bundles |
+| Engine framework | `Sources/CRWebView` | a minimal Chromium `//content` embedder exposing the ObjC `CRWebView` surface; built from source into `CRWebView.framework` |
+| Sub-process helper | `Sources/CRWebView/helper` | minimal `content::ContentMain` entry point shared by all helper bundles |
+
+The Swift app only ever touches the Objective-C seam (`CRWebView`,
+`CRWebViewConfiguration`, `CRWebViewDelegate`, `CRSiteData`, `CRWebEngine`); it
+never sees Chromium C++ types. Engine internals and the per-milestone
+finishing-pass notes live in [`Sources/CRWebView/README.md`](Sources/CRWebView/README.md).
 
 Key files:
 
-- `ArcadiaCEF/CEFEngine.mm` — `CefInitialize`/message-pump/`CefShutdown`.
-- `ArcadiaCEF/CEFApp.mm` — registers the `arcadia-cache` scheme; applies global
-  privacy on context init.
-- `ArcadiaCEF/CEFPrivacy.mm` — always-on third-party cookie blocking.
-- `ArcadiaCEF/CEFRequestContextFactory.mm` — ephemeral (default) vs persistent
-  (login-persisted) contexts.
-- `ArcadiaCEF/CEFClientHandler.mm` — load/title/favicon/URL callbacks, scheme
-  allow-list (blocks `chrome://`, `devtools://`, `file://`, …), offline routing.
-- `ArcadiaCEF/CEFOfflineCache.mm` — resource capture that **skips JavaScript**
-  and offline replay that never serves scripts.
-- `ArcadiaCEF/CEFBrowserController.mm` — one browser bound to an `NSView`.
+- `CRWebView/app/crwebview_engine.mm` — `content::ContentMain` bootstrap /
+  shutdown (no message-pump timer; integrates with AppKit's run loop).
+- `CRWebView/common/crwebview_content_client.cc` — registers the `arcadia-cache`
+  scheme.
+- `CRWebView/browser/crwebview_privacy.cc` — always-on third-party cookie
+  blocking.
+- `CRWebView/browser/crwebview_browser_context.cc` — ephemeral (default) vs
+  persistent (login-persisted) contexts.
+- `CRWebView/browser/crwebview_navigation_throttle.cc` — scheme allow-list
+  (blocks `chrome://`, `devtools://`, `file://`, …).
+- `CRWebView/browser/crwebview_offline_url_loader_factory.cc` — resource capture
+  that **skips JavaScript** and offline replay that never serves scripts.
+- `CRWebView/browser/crwebview.mm` — one `WebContents` bound to an `NSView`.
 - `Arcadia/Services/BrowserCoordinator.swift` — sessions, bookmarking, capture,
   login persistence.
 - `Arcadia/Services/NavigationChain.swift` — the breadcrumb hierarchy.
 
 ## Status / not yet validated
 
-This scaffold was authored on Linux and **has not been compiled against CEF or
-run on macOS**. Expect a finishing pass on a Mac:
+This migration off CEF (see `docs/cef-to-crwebview-migration.md`) was authored
+without a Chromium build and **has not been compiled or run**. The engine source
+in `Sources/CRWebView` targets the 138-era `//content` API; expect a finishing
+pass on a Mac with a Chromium checkout. The highest-risk items are documented in
+[`Sources/CRWebView/README.md`](Sources/CRWebView/README.md):
 
-- Confirm the CEF C++ API calls match your fetched CEF version (the API evolves
-  between Chromium versions — especially `DownloadImage`, `SetAsChild`,
-  `SetPreference` keys, and `CefStreamResourceHandler`).
-- Wire the best-effort **login-form detection** (a render-process DOM visitor
-  for password fields) — currently a hook in `CEFClientHandler` that calls
-  `sinkDidDetectLoginForm`.
-- Finish the **persistent-context reload** path when a user opts into login
-  persistence mid-session.
-- Verify the manual CEF embedding/signing build phases above.
+- Main-loop integration with AppKit's run loop (`crwebview_engine.mm`).
+- The offline capture body splice (`crwebview_offline_url_loader_factory.cc`).
+- `//content` API drift (the API is not a stable ABI; every Chromium uplift can
+  require embedder fixes).
+- Confirming the pinned Chromium revision builds against the macOS 26 SDK.

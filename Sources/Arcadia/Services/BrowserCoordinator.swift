@@ -1,6 +1,6 @@
 import Foundation
 import SwiftData
-import ArcadiaCEF
+import CRWebView
 
 /// Top-level browsing state: the active session, opening bookmarks, creating
 /// bookmarks with offline capture, and persisting login for a site.
@@ -18,7 +18,7 @@ final class BrowserCoordinator: ObservableObject {
     // MARK: Sessions
 
     static func makeExplorerSession() -> BrowserSession {
-        let config = CEFBrowserConfiguration()
+        let config = CRWebViewConfiguration()
         config.storageMode = .ephemeral
         config.offlineMode = .none
         return BrowserSession(kind: .explorer, configuration: config)
@@ -35,11 +35,11 @@ final class BrowserCoordinator: ObservableObject {
     func openBookmark(_ bookmark: Bookmark) {
         activeSession.close()
 
-        let config = CEFBrowserConfiguration()
+        let config = CRWebViewConfiguration()
         let domain = bookmark.url?.host ?? ""
         if bookmark.persistLogin {
             config.storageMode = .persistent
-            config.persistentCachePath = AppPaths.contextDirectory(forDomain: domain).path
+            config.persistentProfilePath = AppPaths.contextDirectory(forDomain: domain).path
         } else {
             config.storageMode = .ephemeral
         }
@@ -74,7 +74,7 @@ final class BrowserCoordinator: ObservableObject {
 
     private func captureSnapshot(for bookmark: Bookmark, sourceURL: String, context: ModelContext) {
         let snapshotID = UUID()
-        let config = CEFBrowserConfiguration()
+        let config = CRWebViewConfiguration()
         config.storageMode = .ephemeral
         config.offlineMode = .capture
         config.snapshotDirectory = AppPaths.snapshotDirectory(snapshotID).path

@@ -9,7 +9,7 @@ struct BrowserView: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
-                CEFWebView(session: session)
+                WebView(session: session)
                     .opacity(showStartPage ? 0 : 1)
 
                 if showStartPage {
