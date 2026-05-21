@@ -14,7 +14,10 @@ NS_ASSUME_NONNULL_BEGIN
 /// CEFBrowserDelegate (callbacks renamed browser: -> webView:).
 @protocol CRWebViewDelegate <NSObject>
 @optional
-- (void)webView:(CRWebView *)webView didChangeURL:(NSString *)url;
+- (void)webView:(CRWebView *)webView
+   didChangeURL:(NSString *)url
+  userInitiated:(BOOL)userInitiated
+    NS_SWIFT_NAME(webView(_:didChangeURL:userInitiated:));
 - (void)webView:(CRWebView *)webView didChangeTitle:(NSString *)title;
 - (void)webView:(CRWebView *)webView didChangeLoading:(BOOL)isLoading;
 - (void)webView:(CRWebView *)webView didChangeCanGoBack:(BOOL)canGoBack

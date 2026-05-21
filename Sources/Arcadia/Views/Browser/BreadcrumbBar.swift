@@ -66,7 +66,6 @@ struct BreadcrumbBar: View {
     }
 
     private func crumbLabel(_ node: NavNode) -> String {
-        if !node.title.isEmpty { return node.title }
-        return URL(string: node.url)?.host ?? node.url
+        node.title.isEmpty ? "Untitled" : node.title
     }
 }

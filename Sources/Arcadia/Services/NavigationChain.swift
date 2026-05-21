@@ -45,6 +45,13 @@ final class NavigationChain {
         }
     }
 
+    /// For self-redirects: reload/bookmark see the resolved URL while the
+    /// chain keeps representing user-driven steps.
+    func updateCurrentURL(_ url: String) {
+        guard nodes.indices.contains(currentIndex) else { return }
+        nodes[currentIndex].url = url
+    }
+
     func jump(to index: Int) {
         guard nodes.indices.contains(index) else { return }
         currentIndex = index

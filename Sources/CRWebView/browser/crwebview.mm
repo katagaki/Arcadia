@@ -43,7 +43,7 @@ NSString* SysUTF8ToNS(const std::string& s) {
 // Internal callbacks invoked by the C++ observer / login closure, on the main
 // thread. Not part of the public surface.
 @interface CRWebView ()
-- (void)crw_urlChanged:(NSString*)url;
+- (void)crw_urlChanged:(NSString*)url userInitiated:(BOOL)userInitiated;
 - (void)crw_titleChanged:(NSString*)title;
 - (void)crw_loadingChanged:(BOOL)isLoading;
 - (void)crw_navStateChanged;
@@ -70,8 +70,16 @@ class CRWebViewObserver : public content::WebContentsObserver {
     if (!handle->IsInPrimaryMainFrame() || !handle->HasCommitted()) {
       return;
     }
+    // User-initiated == a user-gesture click or a browser-initiated load
+    // (typed URL / our LoadURL); a renderer-initiated nav with no gesture is a
+    // silent JS redirect, so the breadcrumb updates in place instead of
+    // growing. This is the //content stand-in for CEF's OnBeforeBrowse
+    // user_gesture on the navigation's first hop.
+    BOOL userInitiated =
+        handle->HasUserGesture() || !handle->IsRendererInitiated();
     [owner_ crw_urlChanged:SysUTF8ToNS(
-                              web_contents()->GetLastCommittedURL().spec())];
+                              web_contents()->GetLastCommittedURL().spec())
+              userInitiated:userInitiated];
     [owner_ crw_navStateChanged];
   }
 
@@ -227,10 +235,11 @@ class CRWebViewObserver : public content::WebContentsObserver {
 
 #pragma mark - Observer callbacks (main thread)
 
-- (void)crw_urlChanged:(NSString*)url {
+- (void)crw_urlChanged:(NSString*)url userInitiated:(BOOL)userInitiated {
   _currentURL = url;
-  if ([_delegate respondsToSelector:@selector(webView:didChangeURL:)]) {
-    [_delegate webView:self didChangeURL:url];
+  if ([_delegate respondsToSelector:@selector(webView:
+                                        didChangeURL:userInitiated:)]) {
+    [_delegate webView:self didChangeURL:url userInitiated:userInitiated];
   }
 }
 

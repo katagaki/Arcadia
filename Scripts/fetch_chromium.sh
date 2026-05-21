@@ -56,7 +56,14 @@ cd "$CHROMIUM_DIR/src"
 
 log "Pinning to $CHROMIUM_VERSION"
 git fetch --tags origin
-git checkout "tags/$CHROMIUM_VERSION" -B "arcadia-pin-$CHROMIUM_VERSION"
+if git rev-parse -q --verify "refs/tags/$CHROMIUM_VERSION" >/dev/null; then
+  git checkout "tags/$CHROMIUM_VERSION" -B "arcadia-pin-$CHROMIUM_VERSION"
+else
+  echo "WARNING: tag '$CHROMIUM_VERSION' not found; staying on the fetched revision." >&2
+  echo "         The checkout is still usable, but set CHROMIUM_VERSION to a real" >&2
+  echo "         macOS-26-SDK-compatible tag before building (it must match the" >&2
+  echo "         //content API the embedder targets)." >&2
+fi
 
 log "Syncing dependencies to the pinned revision (gclient sync)"
 gclient sync -D --with_branch_heads --with_tags --reset
