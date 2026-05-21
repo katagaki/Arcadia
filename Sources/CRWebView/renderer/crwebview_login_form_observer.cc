@@ -1,11 +1,11 @@
 #include "arcadia/crwebview/renderer/crwebview_login_form_observer.h"
 
 #include "content/public/renderer/render_frame.h"
+#include "third_party/blink/public/mojom/forms/form_control_type.mojom-shared.h"
 #include "third_party/blink/public/platform/browser_interface_broker_proxy.h"
 #include "third_party/blink/public/web/web_document.h"
 #include "third_party/blink/public/web/web_form_control_element.h"
 #include "third_party/blink/public/web/web_form_element.h"
-#include "third_party/blink/public/web/web_input_element.h"
 #include "third_party/blink/public/web/web_local_frame.h"
 
 namespace crwebview {
@@ -44,9 +44,8 @@ bool CRWebViewLoginFormObserver::DocumentHasPasswordField() const {
   for (const blink::WebFormElement& form : document.Forms()) {
     for (const blink::WebFormControlElement& control :
          form.GetFormControlElements()) {
-      blink::WebInputElement input =
-          control.DynamicTo<blink::WebInputElement>();
-      if (!input.IsNull() && input.IsPasswordFieldForAutofill()) {
+      if (control.FormControlType() ==
+          blink::mojom::FormControlType::kInputPassword) {
         return true;
       }
     }

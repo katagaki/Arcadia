@@ -24,7 +24,7 @@ CRWebViewBrowserContext::~CRWebViewBrowserContext() {
   ShutdownStoragePartitions();
 }
 
-base::FilePath CRWebViewBrowserContext::GetPath() {
+base::FilePath CRWebViewBrowserContext::GetPath() const {
   return path_;
 }
 

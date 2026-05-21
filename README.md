@@ -99,10 +99,11 @@ Key files:
 
 ## Status / not yet validated
 
-This migration off CEF (see `docs/cef-to-crwebview-migration.md`) was authored
-without a Chromium build and **has not been compiled or run**. The engine source
-in `Sources/CRWebView` targets the 138-era `//content` API; expect a finishing
-pass on a Mac with a Chromium checkout. The highest-risk items are documented in
+This migration off CEF (see `docs/cef-to-crwebview-migration.md`) **has not yet
+been compiled or run**. The engine source in `Sources/CRWebView` targets the
+**M150** `//content` API, verified signature-by-signature against a 150.0.7850.0
+checkout; expect a finishing pass on a Mac with a Chromium build. The
+highest-risk items are documented in
 [`Sources/CRWebView/README.md`](Sources/CRWebView/README.md):
 
 - Main-loop integration with AppKit's run loop (`crwebview_engine.mm`).

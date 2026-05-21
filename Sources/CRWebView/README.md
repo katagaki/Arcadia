@@ -24,31 +24,43 @@ Scripts/build_crwebview.sh     # gn gen + ninja + assemble the framework
 | `common/` | `ContentClient`, scheme constants, IPC mojom | `CEFApp`, `CEFSchemeConstants` |
 | `public/CRWebView/` | the framework's public ObjC headers | `ArcadiaCEF/include` |
 
-## Needs a finishing pass against the pinned milestone
+## Status: targets M150, pending a build
 
-The `//content` API is not a stable ABI. The following were authored against the
-138-era API and must be confirmed when the pinned revision is finalized (plan
-§3, §9):
+The embedder targets the **M150 `//content` API**, verified signature-by-signature
+against a `150.0.7850.0` checkout. It has not been compiled yet — a build pass on
+the pinned revision is still expected — but the public API surface was checked
+against the real headers.
+
+**Adjusted for M150** (vs. the initial draft): `ContentBrowserClient::
+WillCreateURLLoaderFactory` returns `void`; `BrowserContext::GetPath()` is
+`const`; `ScopedSendingEvent` lives in `base::mac` (not `base::apple`); login
+detection uses `WebFormControlElement::FormControlType() ==
+blink::mojom::FormControlType::kInputPassword` (the old
+`IsPasswordFieldForAutofill` is gone); `StringDataSource` takes
+`base::span<const char>`. `ContentMainDelegate`/`ContentMainRunner`,
+`CreateThrottlesForNavigation(NavigationThrottleRegistry&)`, the 16
+`BrowserContext` pure virtuals, `DocumentService`, `DownloadImage`,
+`PNGCodec::EncodeBGRASkBitmap`, the mojo data-pipe APIs, and the GN
+templates/labels all matched M150 as written.
+
+**Still needs a build/runtime pass:**
 
 - **Main-loop integration** (`app/crwebview_engine.mm`): the highest-risk seam.
   We `Initialize` the `ContentMainRunner` but never `Run()`, relying on
   Chromium's Cocoa pump to schedule onto the host `NSApplication` run loop. Prove
   this in a standalone harness before trusting it.
 - **Offline capture body splice** (`browser/crwebview_offline_url_loader_factory.cc`,
-  `BodyTee`): the mojo data-pipe two-phase read/write mechanics. Replay streams
-  via `DataPipeProducer` and the manifest format is settled; the live capture
-  tee is the A4 validation target. Note both capture writes and replay file
-  opens currently block on the calling sequence — move to a blocking task
-  runner during A4.
-- **`BrowserContext` delegate set**: the exact list of pure-virtual
-  `Get*Delegate` methods drifts; track `content_shell`'s `ShellBrowserContext`.
+  `BodyTee`): signatures are M150-correct, but the live tee's data-pipe pumping is
+  unproven. Replay streams via `DataPipeProducer` and the manifest format is
+  settled. Both capture writes and replay file opens currently block on the
+  calling sequence — move to a blocking task runner.
 - **ObjC ↔ `base::Bind`**: the favicon/login callbacks and `CRSiteData` bind a
   `__weak CRWebView*` / ObjC block through `base::Bind` (relying on ARC to
-  manage the captured object). Confirm this compiles/behaves on the milestone;
-  swap to an explicit trampoline if not.
-- **API name drift**: `NavigationThrottleRegistry`, `base/apple` vs `base/mac`,
-  `WebInputElement::IsPasswordFieldForAutofill`, `PNGCodec::EncodeBGRASkBitmap`,
-  `WebContentsUserData` registration, GN template/dep names in `BUILD.gn`.
+  manage the captured object). Confirm this behaves at runtime; swap to an
+  explicit trampoline if not.
+- **Packaging** (`BUILD.gn`): target labels are valid for M150, but the exact
+  `repack` `.pak` set and runtime-payload layout are iterative — expect to adjust
+  during the first framework build.
 
 ## Privacy invariants (must hold; verify explicitly)
 

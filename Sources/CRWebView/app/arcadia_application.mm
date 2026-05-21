@@ -1,12 +1,11 @@
 #import <CRWebView/ArcadiaApplication.h>
 
-#import "base/apple/scoped_sending_event.h"
+#import "base/mac/scoped_sending_event.h"
 #import "base/message_loop/message_pump_apple.h"
 
 // CrAppProtocol / CrAppControlProtocol are the Chromium equivalents of CEF's
 // CefAppProtocol: the same isHandlingSendEvent pair, with
-// base::apple::ScopedSendingEvent in place of CefScopedSendingEvent. (Header
-// names track the base/mac -> base/apple migration; adjust on uplift.)
+// base::mac::ScopedSendingEvent in place of CefScopedSendingEvent.
 @interface ArcadiaApplication () <CrAppProtocol, CrAppControlProtocol>
 @end
 
@@ -27,7 +26,7 @@
 }
 
 - (void)sendEvent:(NSEvent*)event {
-  base::apple::ScopedSendingEvent sendingEventScoper;
+  base::mac::ScopedSendingEvent sendingEventScoper;
   [super sendEvent:event];
 }
 

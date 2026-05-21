@@ -44,7 +44,7 @@ void CRWebViewContentBrowserClient::CreateThrottlesForNavigation(
   CRWebViewSchemeNavigationThrottle::MaybeCreateAndAdd(registry);
 }
 
-bool CRWebViewContentBrowserClient::WillCreateURLLoaderFactory(
+void CRWebViewContentBrowserClient::WillCreateURLLoaderFactory(
     content::BrowserContext* browser_context,
     content::RenderFrameHost* frame,
     int render_process_id,
@@ -63,12 +63,12 @@ bool CRWebViewContentBrowserClient::WillCreateURLLoaderFactory(
   content::WebContents* web_contents =
       frame ? content::WebContents::FromRenderFrameHost(frame) : nullptr;
   if (!web_contents) {
-    return false;
+    return;
   }
   // Installs a capture-tee or replay proxy in front of the real factory when
-  // the owning session is in an offline mode; no-op otherwise. Returns whether
-  // it modified the chain.
-  return MaybeInstallOfflineProxy(web_contents, factory_builder);
+  // the owning session is in an offline mode; no-op otherwise. (M150's hook is
+  // void; the proxy is installed via factory_builder, not a return value.)
+  MaybeInstallOfflineProxy(web_contents, factory_builder);
 }
 
 void CRWebViewContentBrowserClient::RegisterNonNetworkSubresourceURLLoaderFactories(

@@ -36,7 +36,7 @@ class CRWebViewContentBrowserClient : public content::ContentBrowserClient {
   void CreateThrottlesForNavigation(
       content::NavigationThrottleRegistry& registry) override;
 
-  bool WillCreateURLLoaderFactory(
+  void WillCreateURLLoaderFactory(
       content::BrowserContext* browser_context,
       content::RenderFrameHost* frame,
       int render_process_id,

@@ -29,7 +29,7 @@ class CRWebViewBrowserContext : public content::BrowserContext {
   ~CRWebViewBrowserContext() override;
 
   // content::BrowserContext:
-  base::FilePath GetPath() override;
+  base::FilePath GetPath() const override;
   bool IsOffTheRecord() override;
   std::unique_ptr<content::ZoomLevelDelegate> CreateZoomLevelDelegate(
       const base::FilePath& partition_path) override;

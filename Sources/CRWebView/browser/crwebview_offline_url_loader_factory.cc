@@ -121,8 +121,8 @@ class ReplayResponder {
     new ReplayResponder(
         std::move(client), std::move(head),
         std::make_unique<mojo::StringDataSource>(
-            base::span<const uint8_t>(), mojo::StringDataSource::AsyncWritingMode::
-                                             STRING_STAYS_VALID_UNTIL_COMPLETION));
+            base::span<const char>(), mojo::StringDataSource::AsyncWritingMode::
+                                          STRING_STAYS_VALID_UNTIL_COMPLETION));
   }
 
  private:

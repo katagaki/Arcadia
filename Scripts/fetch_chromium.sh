@@ -14,17 +14,18 @@
 #   DEPOT_TOOLS_DIR   where depot_tools is cloned      (default: $HOME/depot_tools)
 #   CHROMIUM_VERSION  exact tag to pin                 (default: see below)
 #
-# NOTE (plan §12, open question): CHROMIUM_VERSION below is a PLACEHOLDER. Pin it
-# to the exact Chromium release confirmed to build against the macOS 26 SDK with
-# deployment target 26 before relying on this. Tags: https://chromiumdash.appspot.com/
-# It is intentionally on the 138 milestone to match the Chromium version Arcadia
-# rendered with under CEF, minimizing behavioral drift across the migration.
+# The embedder is written against the M150 //content API (verified file-by-file
+# against a 150.0.7850.0 checkout). CHROMIUM_VERSION pins that milestone; for a
+# reproducible build, set it to a real M150 release tag confirmed to build
+# against the macOS 26 SDK (deployment target 26). Tags:
+# https://chromiumdash.appspot.com/  — if the exact tag isn't published, the
+# checkout still works at whatever revision `fetch` lands on.
 
 set -euo pipefail
 
 CHROMIUM_DIR="${CHROMIUM_DIR:-$HOME/chromium}"
 DEPOT_TOOLS_DIR="${DEPOT_TOOLS_DIR:-$HOME/depot_tools}"
-CHROMIUM_VERSION="${CHROMIUM_VERSION:-138.0.7204.100}"  # PLACEHOLDER — see note above.
+CHROMIUM_VERSION="${CHROMIUM_VERSION:-150.0.7850.0}"  # M150; see note above.
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 
