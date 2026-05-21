@@ -1,7 +1,16 @@
 # Migration Plan: CEF → Chromium (`CRWebView` framework)
 
-Status: **plan / not started**. Target: replace the Chromium Embedded Framework
-(CEF) with an in-house Chromium engine built from source.
+Status: **source authored, build pending**. Target: replace the Chromium
+Embedded Framework (CEF) with an in-house Chromium engine built from source.
+
+All source-level deliverables of Stages A and B are committed on this branch:
+the embedder (`Sources/CRWebView`), the fetch/build scripts (`Scripts/`), the
+Swift seam re-pointed onto `CRWebView`, and the build/packaging config. What
+remains is the environment-bound work that cannot be done without a Mac build
+box and a Chromium checkout: running `Scripts/fetch_chromium.sh` +
+`Scripts/build_crwebview.sh` to produce `CRWebView.framework`, then the
+compile/validation passes (A0 SDK pin, the high-risk seams in
+`Sources/CRWebView/README.md`, and §11's privacy/smoke validation).
 
 ## 1. Goal & approach
 

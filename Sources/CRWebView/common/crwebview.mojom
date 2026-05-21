@@ -1,0 +1,10 @@
+module crwebview.mojom;
+
+// Renderer -> browser, per-frame. Sent when the frame's document contains a
+// password field, so the browser can offer to persist login for the site.
+// This is the //content wiring for CEF's planned render-process DOM visitor
+// (the unwired sinkDidDetectLoginForm hook).
+interface LoginFormDetector {
+  // The current document has at least one password input.
+  LoginFormDetected();
+};

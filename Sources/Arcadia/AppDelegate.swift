@@ -1,26 +1,18 @@
 import AppKit
-import ArcadiaCEF
+import CRWebView
 
-/// Owns the CEF process lifecycle and pumps its message loop on the main thread.
+/// Owns the Chromium engine lifecycle. There is no message-pump timer: the
+/// engine integrates with AppKit's run loop via Chromium's Cocoa message pump
+/// and schedules its own work on the main thread.
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var pumpTimer: Timer?
-
     func applicationWillFinishLaunching(_ notification: Notification) {
-        guard CEFEngine.loadLibrary() else {
-            fatalError("Failed to load CEF. Run Scripts/fetch_cef.sh and check embedding.")
+        guard CRWebEngine.loadLibrary() else {
+            fatalError("Failed to load CRWebView.framework. Build it with Scripts/build_crwebview.sh and check embedding.")
         }
         do {
-            try CEFEngine.shared.initialize()
+            try CRWebEngine.shared.initialize()
         } catch {
-            fatalError("CEF initialization failed: \(error)")
-        }
-
-        // external_message_pump = true, so CEF work is driven from AppKit's loop.
-        pumpTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
-            CEFEngine.shared.doMessageLoopWork()
-        }
-        if let pumpTimer {
-            RunLoop.main.add(pumpTimer, forMode: .common)
+            fatalError("CRWebView engine initialization failed: \(error)")
         }
     }
 
@@ -29,8 +21,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        pumpTimer?.invalidate()
-        pumpTimer = nil
-        CEFEngine.shared.shutdown()
+        CRWebEngine.shared.shutdown()
     }
 }

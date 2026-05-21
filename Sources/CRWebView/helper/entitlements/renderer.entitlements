@@ -2,11 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!--
-      App Sandbox is intentionally OFF: Chromium's multi-process model and
-      helper bundles are impractical to sandbox. This precludes Mac App Store
-      distribution (use Developer ID instead). See README.
-    -->
+    <!-- V8 needs writable+executable memory; the renderer is the JIT host. -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>

@@ -18,7 +18,8 @@
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>26.0</string>
-    <!-- CEF requires a custom NSApplication subclass as the principal class. -->
+    <!-- Chromium requires a custom NSApplication subclass (CrAppProtocol) as
+         the principal class. -->
     <key>NSPrincipalClass</key>
     <string>ArcadiaApplication</string>
     <key>NSHighResolutionCapable</key>
